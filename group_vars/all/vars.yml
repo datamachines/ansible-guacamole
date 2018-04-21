@@ -4,7 +4,9 @@ GUACD_PORT: 4822
 GUACAMOLE_HOME: /usr/share/{{ TOMCAT_NAME }}/.guacamole
 GUACAMOLE_VERSION: 0.9.14
 GUACAMOLE_CLIENT_VERSION: 0.9.14
-
+#guacamole application name, /desktop instead of /guacamole
+GUACAMOLE_APP_NAME: "desktop"
+APP_TITLE: "Hive Desktop"
 TOMCAT_VERSION: 8
 LOG_LEVEL: debug
 database_user: guacuser 

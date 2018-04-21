@@ -29,4 +29,6 @@ PACKAGES:
   - libwebp-devel
   - haveged
   - gcc
+  - zip
+  - unzip
   
