@@ -37,5 +37,7 @@ PACKAGES:
   - libvorbis-dev
   - libwebp-dev
   - haveged
+  - zip
+  - unzip
 
 

@@ -76,34 +76,60 @@
     when: ansible_distribution == "CentOS"
 
 
-- name: Download client war file 
-  get_url:
-    url: http://apache.org/dyn/closer.cgi?action=download&filename=guacamole/{{ GUACAMOLE_VERSION }}/binary/guacamole-{{ GUACAMOLE_VERSION }}.war
-    dest: /var/lib/{{ TOMCAT_NAME }}/webapps/guacamole.war
-    owner: "{{ TOMCAT_NAME }}"
-    group: "{{ TOMCAT_NAME }}"
-    mode: 0755
-    
+  - name: Download client war file 
+    get_url:
+      url: http://apache.org/dyn/closer.cgi?action=download&filename=guacamole/{{ GUACAMOLE_VERSION }}/binary/guacamole-{{ GUACAMOLE_VERSION }}.war
+      dest: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}.war
+      owner: "{{ TOMCAT_NAME }}"
+      group: "{{ TOMCAT_NAME }}"
+      mode: 0755
+ 
+  - name: Unpack war
+    tags: undatewar
+    unarchive: 
+      src: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}.war
+      dest: /var/lib/{{ TOMCAT_NAME }}/webapps/
+      remote_src: yes
+     
+  - name: copy DMC logo images to /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}/images/
+    tags: undatewar
+    copy:
+      src: "{{ item }}"
+      dest: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}/images/
+      owner: "{{ TOMCAT_NAME }}"
+      group: "{{ TOMCAT_NAME }}"
+      mode: 0755
+    with_fileglob:
+      - roles/server/templates/*.png
+  
+  - name: update Name  in /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}/translations/en.json to reflect {{ APP_TITLE }}
+    tags: undatewar
+    lineinfile:
+      path: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}/translations/en.json
+      regexp: '^        "NAME"    :'
+      line: '        "NAME"    : "{{ APP_TITLE }}",'
+      state: present
+ 
 
-- name: Make '{{ GUACAMOLE_HOME }}' directory
-  file: path='{{ GUACAMOLE_HOME }}' state=directory
+  - name: Make '{{ GUACAMOLE_HOME }}' directory
+    file: path='{{ GUACAMOLE_HOME }}' state=directory
         owner={{ TOMCAT_NAME }}
         group={{ TOMCAT_NAME }}
         mode=0755
-  tags: configuration
+    tags: configuration
 
 
   
-- name: Make a link to /etc/guacamole
-  file:
-    src: '{{ GUACAMOLE_HOME }}'
-    dest: /etc/guacamole
-    state: link
-    force: yes
-    follow: true
-    owner: "{{ TOMCAT_NAME }}"
-    group: "{{ TOMCAT_NAME }}"
-    mode: 0755
+  - name: Make a link to /etc/guacamole
+    file:
+      src: '{{ GUACAMOLE_HOME }}'
+      dest: /etc/guacamole
+      state: link
+      force: yes
+      follow: true
+      owner: "{{ TOMCAT_NAME }}"
+      group: "{{ TOMCAT_NAME }}"
+      mode: 0755
 
   
 - tags: database
@@ -240,3 +266,5 @@
     with_items: [ '{{ MYSQL_DAEMON }}', guacd, '{{ TOMCAT_NAME }}']
     ignore_errors: yes
     tags: deploy
+    
+  
