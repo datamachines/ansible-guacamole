@@ -17,6 +17,9 @@
 #10.108.16.159
 10.108.4.82
 
+[medifor]
+10.107.5.17
+
 #default to python, since db_create doesn't support python3 yet
 [all:vars]
 ansible_python_interpreter=/usr/bin/python

@@ -1,0 +1,3 @@
+APP_TITLE: "Medifor Desktop"
+ldap_user_search_filter: (|(memberOf=cn=mediforusers,cn=groups,cn=accounts,dc=ipa,dc=dsra,dc=io))
+ 

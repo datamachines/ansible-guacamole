@@ -88,7 +88,7 @@
     tags: undatewar
     unarchive: 
       src: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}.war
-      dest: /var/lib/{{ TOMCAT_NAME }}/webapps/
+      dest: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}
       remote_src: yes
      
   - name: copy DMC logo images to /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}/images/
