@@ -1,8 +1,8 @@
 ---
 
-- name: Gather OS-specific variables
-  include_vars: "{{ ansible_distribution }}.yml"
-  tags: always
+  - name: Gather OS-specific variables
+    include_vars: "{{ ansible_distribution }}.yml"
+    tags: always
 
 
 
@@ -16,30 +16,21 @@
 
 
 
-- name: Download Server source code 
-  get_url:
-    url: http://apache.org/dyn/closer.cgi?action=download&filename=guacamole/{{ GUACAMOLE_VERSION }}/source/guacamole-server-{{ GUACAMOLE_VERSION }}.tar.gz
-    dest: /home/{{ansible_user}}
+  - name: Download Server source code 
+    get_url:
+      url: http://apache.org/dyn/closer.cgi?action=download&filename=guacamole/{{ GUACAMOLE_VERSION }}/source/guacamole-server-{{ GUACAMOLE_VERSION }}.tar.gz
+      dest: /home/{{ansible_user}}
     
    
 
-- name: Extract the guacamole-server source
-  unarchive: src="guacamole-server-{{ GUACAMOLE_VERSION }}.tar.gz" copy=no dest=/home/{{ansible_user}}
-  tags: extract
-
-- tags: install
-  block:
-  - name: Add Oracle Java repository
-    apt_repository: repo="ppa:webupd8team/java"
-    when: ansible_distribution == "Ubuntu"
+  - name: Extract the guacamole-server source
+    unarchive: src="guacamole-server-{{ GUACAMOLE_VERSION }}.tar.gz" copy=no dest=/home/{{ansible_user}}
+    tags: extract
   
   - name: Install epel-release for CentOS
     yum: name=epel-release state=latest update_cache=yes
     when: ansible_distribution == "CentOS"
-    
-  - name: Agree to oracle license
-    debconf: name=oracle-java8-installer question=shared/accepted-oracle-license-v1-1 vtype=select value=true
-    when: ansible_distribution == "Ubuntu"
+  
     
   - name: Download MySQL Community Repo 
     get_url:
@@ -80,8 +71,8 @@
     get_url:
       url: http://apache.org/dyn/closer.cgi?action=download&filename=guacamole/{{ GUACAMOLE_VERSION }}/binary/guacamole-{{ GUACAMOLE_VERSION }}.war
       dest: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}.war
-      owner: "{{ TOMCAT_NAME }}"
-      group: "{{ TOMCAT_NAME }}"
+      owner: "{{ TOMCAT_USER }}"
+      group: "{{ TOMCAT_USER }}"
       mode: 0755
  
   - name: Unpack war
@@ -89,6 +80,7 @@
     unarchive: 
       src: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}.war
       dest: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}
+      creates: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}
       remote_src: yes
      
   - name: copy DMC logo images to /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}/images/
@@ -96,8 +88,8 @@
     copy:
       src: "{{ item }}"
       dest: /var/lib/{{ TOMCAT_NAME }}/webapps/{{ GUACAMOLE_APP_NAME }}/images/
-      owner: "{{ TOMCAT_NAME }}"
-      group: "{{ TOMCAT_NAME }}"
+      owner: "{{ TOMCAT_USER }}"
+      group: "{{ TOMCAT_USER }}"
       mode: 0755
     with_fileglob:
       - roles/server/templates/*.png
@@ -113,8 +105,8 @@
 
   - name: Make '{{ GUACAMOLE_HOME }}' directory
     file: path='{{ GUACAMOLE_HOME }}' state=directory
-        owner={{ TOMCAT_NAME }}
-        group={{ TOMCAT_NAME }}
+        owner={{ TOMCAT_USER }}
+        group={{ TOMCAT_USER }}
         mode=0755
     tags: configuration
 
@@ -127,13 +119,12 @@
       state: link
       force: yes
       follow: true
-      owner: "{{ TOMCAT_NAME }}"
-      group: "{{ TOMCAT_NAME }}"
+      owner: "{{ TOMCAT_USER }}"
+      group: "{{ TOMCAT_USER }}"
       mode: 0755
 
   
-- tags: database
-  block:
+
  
   - name: Install the Python MySQLB module
     pip:
@@ -141,7 +132,7 @@
      state: forcereinstall
     with_items: 
        - mysql-connector
-       - MySQL-python
+       - PyMySQL
      
     
  
@@ -156,11 +147,38 @@
   - name: Extract guacamole-auth
     unarchive: src="guacamole-auth-jdbc-{{ GUACAMOLE_VERSION }}.tar.gz" copy=no dest=/home/{{ansible_user}}
     
-  - name: Create database
-    mysql_db: name={{ database_name }} state=present
+
+     
+  - name: Change the authentication plugin of MySQL root user to mysql_native_password
+    shell: mysql -u root -e 'UPDATE mysql.user SET plugin="mysql_native_password" WHERE user="root" AND host="localhost"'
+    ignore_errors: yes
+    tags: 
+      - db
+    
+  - name: Flush Privileges 
+    shell: mysql -u root -e 'FLUSH PRIVILEGES'
+    ignore_errors: yes
+    tags: 
+      - db
+  - name: set root password
+    mysql_user: 
+      name={{ database_root_user }} 
+      password={{ database_passwd }} 
+      state=present  
+      login_user={{ database_root_user }} 
+      login_password=''
+    ignore_errors: yes
+    tags: 
+      - db
+      
+  - name: Create database {{ database_name }}
+    mysql_db: name={{ database_name }} state=present login_user={{ database_root_user }} login_password={{ database_passwd }}
+    tags: 
+      - db
   - name: Create MySQL guacamole user
-  
-    mysql_user: name={{ database_user }} password={{ database_passwd }} state=present priv={{ database_name }}.*:ALL
+    mysql_user: name={{ database_user }} password={{ database_passwd }} state=present priv={{ database_name }}.*:ALL login_user={{ database_root_user }} login_password={{ database_passwd }}
+    tags: 
+      - db
   - name: Run schema on {{ database_name }}
     shell: cat schema/*.sql | {{ database_cmd }} chdir="guacamole-auth-jdbc-{{ GUACAMOLE_VERSION }}/mysql/"
     ignore_errors: true
@@ -193,7 +211,7 @@
       
   - name: copy mysql-connector-java-{{MYSQL_CONNECTOR_VERSION }}-bin.jar to {{ GUACAMOLE_HOME }} /lib
     copy:
-       src: "mysql-connector-java-{{ MYSQL_CONNECTOR_VERSION }}/mysql-connector-java-{{MYSQL_CONNECTOR_VERSION }}-bin.jar"
+       src: "mysql-connector-java-{{ MYSQL_CONNECTOR_VERSION }}/mysql-connector-java-{{MYSQL_CONNECTOR_VERSION }}.jar"
        dest: "{{ GUACAMOLE_HOME }}/lib"
        remote_src: true
        mode: 0755
@@ -252,8 +270,8 @@
       state: directory
       mode: 0755
       recurse: yes
-      owner: "{{ TOMCAT_NAME }}"
-      group: "{{ TOMCAT_NAME }}"
+      owner: "{{ TOMCAT_USER }}"
+      group: "{{ TOMCAT_USER }}"
  
       
   - name: Disable SELinux 

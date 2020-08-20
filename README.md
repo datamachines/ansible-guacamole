@@ -5,14 +5,14 @@ This ansible module build apache guacamole https://guacamole.apache.org/ with my
 ## Description
 
 The module configured mysql database to store connection info, and add extension support to ldap/freeipa with ldap user/group filtering.   
-  * ansible: 2.4+
-  * OS: Ubuntu 16.04 and Centos 7
+  * ansible: 2.7+
+  * OS: Ubuntu 18.04 and Centos 7
   * should work with earlier version, not tested.
 ## Assumption:
    * you have a working ldap server. 
    * you have create a guacadmin user in your ldap server.
    * if you are using "ldap-user-search-filter", make sure guacadmin user is also a member of user group that you would be filtering. this is needed in order for guacamole to see all users in ldap.
-   * take a note of password for the guacadmin user. you will NEED to have same password in mysql database for the application to see all users in ldap that match criteria.
+   * take a note of password for the guacadmin user. you will NEED to have same password in mysql database for the application to see all users in ldap that match criteria. see password in https://vault.dsra.io/ui/vault/secrets/secret/show/passwords
    
    
 ## Installation/Configuration

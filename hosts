@@ -12,14 +12,20 @@
 
 #uncomment if run locally
 #localhost ansible_connection=local
+[all]
+logx-desktop ansible_ssh_host=10.108.17.170  ansible_ssh_port=22 ansible_ssh_user=ubuntu ansible_become=yes ansible_ssh_private_key_file="/Users/aweng/Documents/keys/dsra-admin-keypair.pem"
 
-[guac-server]
+
+[guacserver]
 #10.108.16.159
 10.108.4.82
 
 [medifor]
 10.107.5.17
 
+[logx]
+logx-desktop
+
 #default to python, since db_create doesn't support python3 yet
 [all:vars]
-ansible_python_interpreter=/usr/bin/python
+ansible_python_interpreter=/usr/bin/python3

@@ -1,15 +1,9 @@
 ---
 
 - name: Playbook to install Guacamole HTML5 VNC on a server
-  hosts: medifor
+  hosts: logx
   
-  #install python first, if it's missing. create-db requires python 2.x
-  gather_facts: False
-  pre_tasks:
-    - raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
-      tags: always 
-    - setup: # aka gather_facts
-      tags: always
+ 
         
   roles:
     - roles/server
